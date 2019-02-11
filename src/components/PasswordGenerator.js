@@ -1,48 +1,33 @@
-import React, { Component } from 'react';
-const LETTERS = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
-const SYMBOLS = [ "=","+","-","^","?","!","%","&","*","$","#","^","@","|"];
+import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
+import {LETTERS, SYMBOLS} from '../constants'
 
-function randomLetter(){
-    return LETTERS[Math.floor(Math.random()*LETTERS.length)]
-}
-function randomDigitPosition(digitsPositionArray){
-    return digitsPositionArray[Math.floor(Math.random()*digitsPositionArray.length)]
-}
-function randomSymbol(){
-    return SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)]
-}
-class PasswordGenerator extends Component {
-    constructor(props){
-        super(props)
-        this.state = {
-            password: '',
-            length: 12,
-            digits: 4,
-            symbols: 2,
-            copy: false,
-            strengthScore: 0,
-            strengthText: '',
-            settings: {
-                maxLength: 64,
-                maxDigits: 10,
-                maxSymbols: 10,
-            }
+function PasswordGenerator(props){
+    const [password, setPassword] = useState('')
+    const [length, setLength] = useState(props.length)
+    const [digitCount, setDigitCount] = useState(props.digitCount)
+    const [symbolCount, setSymbolCount] = useState(props.symbolCount)
+    const [copy, setCopy] = useState(false)
+    const [strengthScore, setStrengthScore] = useState(0)
+    const [strengthText, setStrengthText] = useState('')
+    const [settings, setSettings] = useState({
+        maxLength: props.maxLength,
+        maxDigits: props.maxDigits,
+        maxSymbols: props.maxSymbols,
+    })
+    useEffect(() => {
+        document.getElementById("copy_btn").addEventListener("click", copyToClipboard);
+        return () => {
+            document.getElementById("copy_btn").removeEventListener("click", copyToClipboard);
         }
-    }
-    componentDidMount(){
-        this.generatePassword()
-        this.checkPasswordStrength()
-        document.getElementById("copy_btn").addEventListener("click", this.copyToClipboard);
-    }
-    componentWillUnmount(){
-        document.getElementById("copy_btn").removeEventListener("click", this.copyToClipboard);
-    }
-    generatePassword = () => {
+    }, [])
+    useEffect(() => {
+        generatePassword()
+        checkPasswordStrength()
+    },[length, digitCount, symbolCount])
+    const generatePassword = () => {
         let passwordArray = [];
         let digitsPositionArray = [];
-
-        const { length, digits, symbols } = this.state;
-
         for(var i = 0; i < length; i++){
             digitsPositionArray.push(i);
             var upperCase = Math.round(Math.random() * 1);
@@ -53,8 +38,7 @@ class PasswordGenerator extends Component {
                 passwordArray[i] = randomLetter();
             }
         }
-
-        for(i=0; i < digits; i++){
+        for(i=0; i < digitCount; i++){
             var digit = Math.round(Math.random() * 9);
             var numberIndex = randomDigitPosition(digitsPositionArray);
             passwordArray[numberIndex] =  digit;
@@ -64,8 +48,7 @@ class PasswordGenerator extends Component {
               digitsPositionArray.splice(j, 1);
             }
         }
-
-        for (i = 0; i < symbols; i++) {
+        for (i = 0; i < symbolCount; i++) {
             var symbol = randomSymbol();
             var symbolIndex = randomDigitPosition(digitsPositionArray);
 
@@ -75,23 +58,19 @@ class PasswordGenerator extends Component {
                 digitsPositionArray.splice(j, 1);
             }
         }
-
-        this.setState({
-            password: passwordArray.join("")
-        }, () => {
-            this.checkPasswordStrength();
-        })
+        setPassword(passwordArray.join(""))
     }
-    handleOnChange = (e, name) => {
-        this.setState({
-            [name]: e.target.value
-        }, () => {
-            this.generatePassword();
-        })
+    const handleOnChange = (e, name) => {
+        let value = e.target.value
+        if(name === 'length'){
+            setLength(value)
+        }else if(name === 'digits'){
+            setDigitCount(value)
+        }else if(name === 'symbols'){
+            setSymbolCount(value)
+        }
     }
-
-    checkPasswordStrength = () => {
-        const { password } = this.state
+    const checkPasswordStrength = () => {
         var count = {
             excess: 0,
             upperCase: 0,
@@ -139,37 +118,29 @@ class PasswordGenerator extends Component {
         weight.flatNumber;
 
       if(score < 30 ) {
-        this.setState({
-            strengthScore: 10,
-            strengthText: 'weak'
-        })
-      } else if (score >= 30 && score < 75 ){
-        this.setState({
-            strengthScore: 40,
-            strengthText: 'average'
-        })
-      } else if (score >= 75 && score < 150 ){
-        this.setState({
-            strengthScore: 75,
-            strengthText: 'strong'
-        })
-      } else {
-        this.setState({
-            strengthScore: 100,
-            strengthText: 'secure'
-        })
+        setStrengthScore(10)
+        setStrengthText('weak')
+      }else if (score >= 30 && score < 75 ){
+        setStrengthScore(40)
+        setStrengthText('average')
+      }else if (score >= 75 && score < 150 ){
+        setStrengthScore(75)
+        setStrengthText('average')
+      }else {
+        setStrengthScore(100)
+        setStrengthText('secure')
       }
     }
-    lengthThumbPosition = () => {
-        return (( (this.state.length - 6) / (this.state.settings.maxLength - 6)) * 100);
+    const lengthThumbPosition = () => {
+        return (( (length - 6) / (settings.maxLength - 6)) * 100);
     }
-    digitsThumbPosition = () => {
-        return (( (this.state.digits - 0) / (this.state.settings.maxDigits - 0)) * 100);
+    const digitsThumbPosition = () => {
+        return (( (digitCount - 0) / (settings.maxDigits - 0)) * 100);
     }
-    symbolsThumbPosition = () => {
-        return (( (this.state.symbols - 0) / (this.state.settings.maxSymbols - 0)) * 100);
+    const symbolsThumbPosition = () => {
+        return (( (symbolCount - 0) / (settings.maxSymbols - 0)) * 100);
     }
-    copyToClipboard = () => {
+    const copyToClipboard = () => {
         var copyText = document.getElementById("pwd_spn");
         var textArea = document.createElement("textarea");
         textArea.value = copyText.textContent;
@@ -177,100 +148,119 @@ class PasswordGenerator extends Component {
         textArea.select();
         document.execCommand("Copy");
         textArea.remove();
-        this.setState({
-            copy: true
-        })
+        setCopy(true)
         setTimeout(() => {
-            this.setState({
-                copy: false
-            })
+            setCopy(false)
         }, 900);
     }
-    render(){
-        const { password, length, digits, symbols, strengthScore, strengthText, copy } = this.state
-        const { maxLength, maxDigits, maxSymbols } = this.state.settings
-        const strengthFilled = "range-slider_wrapper slider-strength " + strengthText
-        const copyValue = this.state.copy ? 'Copied!' : 'Copy'
-        return(
-            <div>
-                <div className='password-box'>
-                    <span id="pwd_spn" ref={() => this.textArea = password} ref={this.textAreaRef} className="password">{password}</span>
-                    <span
-                        class="regenerate-password"
-                        onClick={this.generatePassword}
-                    >
-                    </span>
-                    {
-                        <button id="copy_btn" onClick={this.copyToClipboard} class="copy-password">{copyValue}</button>
-                    }
-                </div>
-                <div className="field-wrap">
-                    <label>Strength</label>
-                    <span className="range-value">{strengthText}</span>
-                    <div className={strengthFilled}>
-                        <span className="slider-bar" style={{width: `${strengthScore}`+'%'}}></span>
-                        <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            className="range-slider"
-                            disabled="disabled"
-                            value={strengthScore}
-                        />
-                    </div>
-                </div>
-                <div className="seperator"></div>
-                <div className="field-wrap">
-                    <label>Length</label>
-                    <span className="range-value">{length}</span>
-                    <div className="range-slider_wrapper">
-                        <span className="slider-bar" style={{width: this.lengthThumbPosition()+'%'}}></span>
-                        <input
-                            id="length"
-                            type="range"
-                            min="6"
-                            className="range-slider"
-                            max={maxLength}
-                            value={length}
-                            onChange={(e) => this.handleOnChange(e, 'length')}
-                        />
-                    </div>
-                </div>
-                <div className="field-wrap">
-                    <label>Digits</label>
-                    <span className="range-value">{digits}</span>
-                    <div className="range-slider_wrapper">
-                        <span class="slider-bar" style={{width: this.digitsThumbPosition()+'%'}}></span>
-                        <input
-                            id="digits"
-                            type="range"
-                            min="0"
-                            className="range-slider"
-                            max={maxDigits}
-                            value={digits}
-                            onChange={(e) => this.handleOnChange(e, 'digits')}
-                        />
-                    </div>
-                </div>
-                <div className="field-wrap">
-                    <label>Symbols</label>
-                    <span className="range-value">{symbols}</span>
-                    <div className="range-slider_wrapper">
-                        <span class="slider-bar" style={{width: this.symbolsThumbPosition()+'%'}}></span>
-                        <input
-                            id="symbols"
-                            type="range"
-                            min="0"
-                            className="range-slider"
-                            max={maxSymbols}
-                            value={symbols}
-                            onChange={(e) => this.handleOnChange(e, 'symbols')}
-                        />
-                    </div>
+    const { maxLength, maxDigits, maxSymbols } = settings
+    const strengthFilled = "range-slider_wrapper slider-strength " + strengthText
+    const copyValue = copy ? 'Copied!' : 'Copy'
+    return(
+        <div>
+            <div className='password-box'>
+                <span id="pwd_spn" className="password">{password}</span>
+                <span
+                    class="regenerate-password"
+                    onClick={generatePassword}
+                >
+                </span>
+                {
+                    <button id="copy_btn" onClick={copyToClipboard} class="copy-password">{copyValue}</button>
+                }
+            </div>
+            <div className="field-wrap">
+                <label>Strength</label>
+                <span className="range-value">{strengthText}</span>
+                <div className={strengthFilled}>
+                    <span className="slider-bar" style={{width: `${strengthScore}`+'%'}}></span>
+                    <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        className="range-slider"
+                        disabled="disabled"
+                        value={strengthScore}
+                    />
                 </div>
             </div>
-        )
-    }
+            <div className="seperator"></div>
+            <div className="field-wrap">
+                <label>Length</label>
+                <span className="range-value">{length}</span>
+                <div className="range-slider_wrapper">
+                    <span className="slider-bar" style={{width: lengthThumbPosition()+'%'}}></span>
+                    <input
+                        id="length"
+                        type="range"
+                        min="6"
+                        className="range-slider"
+                        max={maxLength}
+                        value={length}
+                        onChange={(e) => handleOnChange(e, 'length')}
+                    />
+                </div>
+            </div>
+            <div className="field-wrap">
+                <label>Digits</label>
+                <span className="range-value">{digitCount}</span>
+                <div className="range-slider_wrapper">
+                    <span class="slider-bar" style={{width: digitsThumbPosition()+'%'}}></span>
+                    <input
+                        id="digits"
+                        type="range"
+                        min="0"
+                        className="range-slider"
+                        max={maxDigits}
+                        value={digitCount}
+                        onChange={(e) => handleOnChange(e, 'digits')}
+                    />
+                </div>
+            </div>
+            <div className="field-wrap">
+                <label>Symbols</label>
+                <span className="range-value">{symbolCount}</span>
+                <div className="range-slider_wrapper">
+                    <span class="slider-bar" style={{width: symbolsThumbPosition()+'%'}}></span>
+                    <input
+                        id="symbols"
+                        type="range"
+                        min="0"
+                        className="range-slider"
+                        max={maxSymbols}
+                        value={symbolCount}
+                        onChange={(e) => handleOnChange(e, 'symbols')}
+                    />
+                </div>
+            </div>
+        </div>
+    )
 }
 
+function randomLetter(){
+    return LETTERS[Math.floor(Math.random()*LETTERS.length)]
+}
+function randomDigitPosition(digitsPositionArray){
+    return digitsPositionArray[Math.floor(Math.random()*digitsPositionArray.length)]
+}
+function randomSymbol(){
+    return SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)]
+}
+
+PasswordGenerator.propTypes = {
+    length: PropTypes.number,
+    digitCount: PropTypes.number,
+    symbolCount: PropTypes.number,
+    maxLength: PropTypes.number,
+    maxDigits: PropTypes.number,
+    maxSymbols: PropTypes.number
+}
+PasswordGenerator.defaultProps = {
+    length: 30,
+    digitCount: 15,
+    symbolCount: 15,
+    maxLength: 60,
+    maxDigits: 30,
+    maxSymbols: 30
+}
 export default PasswordGenerator;
